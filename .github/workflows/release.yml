@@ -1,0 +1,30 @@
+# Workflow de release: SBOM, provenance y firma/attestations
+name: Release
+on:
+  release:
+    types: [published]
+jobs:
+  sbom-provenance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generar SBOM (Syft)
+        uses: anchore/sbom-action@v0
+        with:
+          output-file: sbom.spdx.json
+      - name: Subir SBOM como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.spdx.json
+      - name: Generar provenance (SLSA)
+        uses: slsa-framework/slsa-github-generator@v2
+        with:
+          base64-subjects: ${{ github.sha }}
+      - name: Firmar release (cosign)
+        uses: sigstore/cosign-installer@v3
+      - name: Ejecutar firma
+        run: |
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ github.sha }}
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
