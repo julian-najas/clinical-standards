@@ -1,11 +1,17 @@
-# Workflow de políticas de infraestructura: OPA/Conftest para repos de infra/GitOps
+
+# Reusable workflow: Infra Policy (v1.0.0)
 name: Infra Policy
 on:
-  pull_request:
-    paths:
-      - '**/*.yaml'
-      - '**/*.yml'
-      - 'policies/conftest/**'
+  workflow_call:
+    inputs:
+      policy_dir:
+        required: false
+        type: string
+        default: 'policies/conftest'
+      target:
+        required: false
+        type: string
+        default: '.'
 jobs:
   opa-conftest:
     runs-on: ubuntu-latest
@@ -19,4 +25,4 @@ jobs:
           tar -xzf conftest.tar.gz && sudo mv conftest /usr/local/bin/
       - name: Ejecutar Conftest sobre manifiestos
         run: |
-          conftest test .
+          conftest test ${{ inputs.target }} --policy ${{ inputs.policy_dir }}
