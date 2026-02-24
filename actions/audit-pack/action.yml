@@ -1,9 +1,27 @@
-name: "Clinical Audit Pack"
-description: "Instala herramientas, ejecuta checks y publica artefactos de auditoria."
-
+name: 'Clinical Audit Pack'
+description: 'Instala ruff, pip-audit, pytest y ejecuta auditorías. Outputs en artifacts/'
 inputs:
-  install-command:
-    description: "Comando para instalar dependencias y herramientas."
+  python_version:
+    required: false
+    default: '3.11'
+    description: 'Versión de Python a usar'
+runs:
+  using: 'composite'
+  steps:
+    - name: Instalar dependencias de auditoría
+      run: |
+        python -m pip install --upgrade pip
+        pip install ruff pip-audit pytest
+    - name: Ejecutar ruff
+      run: |
+        mkdir -p artifacts
+        ruff check . > artifacts/ruff-report.txt || true
+    - name: Ejecutar pip-audit
+      run: |
+        pip-audit -o artifacts/pip-audit-report.json || true
+    - name: Ejecutar pytest
+      run: |
+        pytest --maxfail=1 --disable-warnings --tb=short | tee artifacts/pytest-report.txt || true
     required: false
     default: ""
   lint-command:

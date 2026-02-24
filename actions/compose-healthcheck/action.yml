@@ -1,9 +1,45 @@
-name: "Compose Healthcheck"
-description: "Levanta stack con docker compose, espera healthcheck y ejecuta cleanup siempre."
-
+name: 'Compose Healthcheck'
+description: 'Levanta stack docker compose, espera health_url, logs en fallo, down -v siempre.'
 inputs:
-  compose-file:
-    description: "Ruta al docker-compose.yml."
+  compose_file:
+    required: false
+    default: 'docker-compose.yml'
+    description: 'Archivo docker-compose a usar'
+  health_url:
+    required: false
+    default: 'http://localhost:8080/health'
+    description: 'Endpoint de healthcheck'
+  timeout_seconds:
+    required: false
+    default: '60'
+    description: 'Timeout para healthcheck (segundos)'
+  compose_args:
+    required: false
+    default: ''
+    description: 'Argumentos extra para docker compose'
+runs:
+  using: 'composite'
+  steps:
+    - name: Levantar stack docker compose
+      run: |
+        docker compose -f ${{ inputs.compose_file }} up -d --build ${{ inputs.compose_args }}
+    - name: Esperar healthcheck
+      run: |
+        for i in $(seq 1 $(( ${{ inputs.timeout_seconds }} / 3 ))); do
+          if curl -fsSL ${{ inputs.health_url }}; then
+            echo "Servicio saludable"; exit 0;
+          fi
+          sleep 3
+        done
+        echo "Timeout esperando healthcheck"; exit 1
+    - name: Logs de servicios si falla
+      if: failure()
+      run: |
+        docker compose -f ${{ inputs.compose_file }} logs
+    - name: Bajar stack siempre
+      if: always()
+      run: |
+        docker compose -f ${{ inputs.compose_file }} down -v
     required: false
     default: "docker-compose.yml"
   project-directory:
