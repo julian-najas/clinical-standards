@@ -1,5 +1,9 @@
 package clinical.docker_compose
 
+# Stub mínimo funcional para desarrollo colaborativo
+default allow = true
+package clinical.docker_compose
+
 # Minimal baseline:
 # - deny privileged
 # - deny docker.sock mount

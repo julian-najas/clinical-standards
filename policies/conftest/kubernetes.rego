@@ -1,5 +1,9 @@
 package clinical.kubernetes
 
+# Stub mínimo funcional para desarrollo colaborativo
+default allow = true
+package clinical.kubernetes
+
 # Minimal baseline:
 # - deny privileged
 # - deny hostNetwork

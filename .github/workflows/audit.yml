@@ -1,5 +1,14 @@
 
+
 # Reusable workflow: Clinical Audit (v1.0.0)
+#
+# Inputs:
+#   repo_type: Tipo de repositorio (critical, standard, etc.)
+#   python_version: Versión de Python (default: 3.11)
+#   semgrep_config: Ruta a config de Semgrep (default: .semgrep.yml)
+# Outputs:
+#   Artifacts en artifacts/ (report.md, gitleaks, semgrep, etc.)
+#
 name: Clinical Audit
 on:
   workflow_call:
@@ -20,6 +29,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Preparar carpeta artifacts
+        run: mkdir -p artifacts
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -38,12 +49,22 @@ jobs:
           semgrep --config ${{ inputs.semgrep_config }} --json > artifacts/semgrep-report.json || true
       - name: Generar artifacts/report.md
         run: |
-          mkdir -p artifacts
           echo "# Clinical Audit Report" > artifacts/report.md
           echo "\n## Gitleaks" >> artifacts/report.md
-          cat artifacts/gitleaks-report.json >> artifacts/report.md || echo "No gitleaks report"
+          if [ -s artifacts/gitleaks-report.json ]; then
+            cat artifacts/gitleaks-report.json >> artifacts/report.md
+          else
+            echo "No gitleaks findings" >> artifacts/report.md
+          fi
           echo "\n## Semgrep" >> artifacts/report.md
-          cat artifacts/semgrep-report.json >> artifacts/report.md || echo "No semgrep report"
+          if [ -s artifacts/semgrep-report.json ]; then
+            cat artifacts/semgrep-report.json >> artifacts/report.md
+          else
+            echo "No semgrep findings" >> artifacts/report.md
+          fi
+          echo "\n## Resumen" >> artifacts/report.md
+          echo "- Gitleaks: $(jq length artifacts/gitleaks-report.json 2>/dev/null || echo 0) findings" >> artifacts/report.md
+          echo "- Semgrep: $(jq '.results | length' artifacts/semgrep-report.json 2>/dev/null || echo 0) findings" >> artifacts/report.md
       - name: Subir artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -54,3 +75,6 @@ jobs:
         run: |
           echo "Enforcement estricto para repositorios críticos"
           # Aquí puedes añadir lógica de enforcement según el tipo de repo
+      - name: Estado global del audit
+        run: |
+          echo "Audit finalizado. Revisa artifacts/report.md para el resumen y detalles."

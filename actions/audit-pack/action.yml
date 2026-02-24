@@ -1,27 +1,131 @@
 name: 'Clinical Audit Pack'
-description: 'Instala ruff, pip-audit, pytest y ejecuta auditorías. Outputs en artifacts/'
+description: |
+  Ejecuta auditorías clínicas estándar: ruff, pip-audit, pytest.
+  Outputs claros en artifacts/. No decide severidad, solo ejecuta y reporta.
+#
+# Inputs principales:
+#   python_version: Versión de Python (default: 3.11)
+#   lint-command: Comando de lint (default: ruff check src tests)
+#   typecheck-command: Comando de typecheck (default: mypy src)
+#   test-command: Comando de tests (default: pytest -q)
+#   run-lint, run-typecheck, run-tests: Activar/desactivar cada check
+#   artifacts-dir: Carpeta para logs/resultados (default: .artifacts/audit)
+#   artifact-name: Nombre del artifact en GitHub Actions
+# Outputs: logs y exit codes por cada check, summary.txt y artifacts subidos
 inputs:
   python_version:
     required: false
     default: '3.11'
     description: 'Versión de Python a usar'
+  lint-command:
+    description: "Comando de lint."
+    required: false
+    default: "ruff check src tests"
+  typecheck-command:
+    description: "Comando de tipado estático."
+    required: false
+    default: "mypy src"
+  test-command:
+    description: "Comando de tests."
+    required: false
+    default: "pytest -q"
+  run-lint:
+    description: "Si ejecutar lint."
+    required: false
+    default: "true"
+  run-typecheck:
+    description: "Si ejecutar typecheck."
+    required: false
+    default: "true"
+  run-tests:
+    description: "Si ejecutar tests."
+    required: false
+    default: "true"
+  artifacts-dir:
+    description: "Directorio donde dejar logs/resultados."
+    required: false
+    default: ".artifacts/audit"
+  artifact-name:
+    description: "Nombre del artefacto en GitHub Actions."
+    required: false
+    default: "audit-artifacts"
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
-    - name: Instalar dependencias de auditoría
+    - id: run-audit
+      shell: bash
+      env:
+        INSTALL_COMMAND: "python -m pip install --upgrade pip && pip install ruff pip-audit pytest mypy"
+        LINT_COMMAND: ${{ inputs.lint-command }}
+        TYPECHECK_COMMAND: ${{ inputs.typecheck-command }}
+        TEST_COMMAND: ${{ inputs.test-command }}
+        RUN_LINT: ${{ inputs.run-lint }}
+        RUN_TYPECHECK: ${{ inputs.run-typecheck }}
+        RUN_TESTS: ${{ inputs.run-tests }}
+        ARTIFACTS_DIR: ${{ inputs.artifacts-dir }}
       run: |
-        python -m pip install --upgrade pip
-        pip install ruff pip-audit pytest
-    - name: Ejecutar ruff
+        set +e
+        mkdir -p "${ARTIFACTS_DIR}"
+        overall_failed=0
+
+        run_cmd() {
+          name="$1"
+          cmd="$2"
+
+          if [ -z "${cmd}" ]; then
+            echo "${name}: skipped (empty command)" | tee "${ARTIFACTS_DIR}/${name}.log"
+            echo "0" > "${ARTIFACTS_DIR}/${name}.exit"
+            return 0
+          fi
+
+          echo "[${name}] ${cmd}" | tee "${ARTIFACTS_DIR}/${name}.log"
+          bash -lc "${cmd}" 2>&1 | tee -a "${ARTIFACTS_DIR}/${name}.log"
+          code=${PIPESTATUS[0]}
+          echo "${code}" > "${ARTIFACTS_DIR}/${name}.exit"
+
+          if [ "${code}" -ne 0 ]; then
+            overall_failed=1
+            echo "${name}: FAILED" | tee -a "${ARTIFACTS_DIR}/summary.txt"
+          else
+            echo "${name}: OK" | tee -a "${ARTIFACTS_DIR}/summary.txt"
+          fi
+        }
+
+        run_cmd "install" "${INSTALL_COMMAND}"
+        if [ "${RUN_LINT}" = "true" ]; then
+          run_cmd "lint" "${LINT_COMMAND}"
+        fi
+        if [ "${RUN_TYPECHECK}" = "true" ]; then
+          run_cmd "typecheck" "${TYPECHECK_COMMAND}"
+        fi
+        if [ "${RUN_TESTS}" = "true" ]; then
+          run_cmd "tests" "${TEST_COMMAND}"
+        fi
+
+        {
+          echo "Clinical Audit Pack"
+          echo "run_lint=${RUN_LINT}"
+          echo "run_typecheck=${RUN_TYPECHECK}"
+          echo "run_tests=${RUN_TESTS}"
+          echo "overall_failed=${overall_failed}"
+        } >> "${ARTIFACTS_DIR}/summary.txt"
+
+        echo "overall_failed=${overall_failed}" >> "${GITHUB_OUTPUT}"
+
+    - name: Upload audit artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.artifacts-dir }}
+        if-no-files-found: error
+        retention-days: 30
+
+    - name: Fail if any audit check failed
+      if: ${{ steps.run-audit.outputs.overall_failed == '1' }}
+      shell: bash
       run: |
-        mkdir -p artifacts
-        ruff check . > artifacts/ruff-report.txt || true
-    - name: Ejecutar pip-audit
-      run: |
-        pip-audit -o artifacts/pip-audit-report.json || true
-    - name: Ejecutar pytest
-      run: |
-        pytest --maxfail=1 --disable-warnings --tb=short | tee artifacts/pytest-report.txt || true
+        echo "audit-pack detectó checks fallidos. Revisa los logs en ${{ inputs.artifacts-dir }}."
+        exit 1
     required: false
     default: ""
   lint-command:
