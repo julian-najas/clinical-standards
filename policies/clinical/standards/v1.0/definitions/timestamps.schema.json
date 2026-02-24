@@ -1,0 +1,12 @@
+{
+  "$id": "https://clinical-standards.local/v1.0/definitions/timestamps.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ISO8601 Timestamps",
+  "type": "object",
+  "properties": {
+    "effective_from": { "type": "string", "format": "date-time" },
+    "effective_to": { "type": "string", "format": "date-time" }
+  },
+  "required": ["effective_from"],
+  "additionalProperties": false
+}

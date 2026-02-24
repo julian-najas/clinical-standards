@@ -1,0 +1,11 @@
+{
+  "$id": "https://clinical-standards.local/v1.0/definitions/identifiers.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Identifiers",
+  "type": "object",
+  "properties": {
+    "patient_id": { "type": "string", "minLength": 1 }
+  },
+  "required": ["patient_id"],
+  "additionalProperties": false
+}

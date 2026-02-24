@@ -4,7 +4,7 @@ Policy for `clinical-standards` releases.
 
 ## Scheme
 - We use Semantic Versioning: `MAJOR.MINOR.PATCH`.
-- Releases are immutable Git tags only.
+- A release is an immutable Git tag plus a published GitHub Release.
 - Consumers should pin to a tag (`@v1.0.0`) or major channel (`@v1`).
 
 ## Change classification
@@ -20,4 +20,4 @@ Policy for `clinical-standards` releases.
 ## Release process
 - Merge to `main` with green CI.
 - Create annotated tag `vX.Y.Z` on `main`.
-- Publish release notes with migration guidance when needed.
+- Publish GitHub Release notes with migration guidance when needed.

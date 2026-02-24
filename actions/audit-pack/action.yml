@@ -43,6 +43,10 @@ inputs:
     required: false
     default: 'audit-artifacts'
     description: 'Artifact name to upload'
+  enable_clinical:
+    required: false
+    default: 'false'
+    description: 'Enable clinical OPA tests (opt-in)'
 
 runs:
   using: 'composite'
@@ -113,6 +117,16 @@ runs:
         } > "${ARTIFACTS_DIR}/summary.txt"
 
         echo "overall_failed=${overall_failed}" >> "${GITHUB_OUTPUT}"
+
+    - name: Clinical OPA tests (opt-in)
+      if: ${{ inputs.enable_clinical == 'true' && hashFiles('policies/clinical/**') != '' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static
+        chmod +x opa
+        sudo mv opa /usr/local/bin/opa
+        opa test policies/clinical -v
 
     - name: Upload audit artifacts
       uses: actions/upload-artifact@v4

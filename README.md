@@ -4,10 +4,24 @@ Repositorio canonico para seguridad, reproducibilidad y gobierno clinico.
 
 Si es tu primera vez aqui, empieza por `docs/START_HERE.md`.
 
+## Current Version
+
+Stable: v1.0.0  
+Branch: main (protected)  
+Compatibility: SemVer
+
+## Governance Model
+
+- Motor CI reusable (stable)
+- Infra baseline policies (stable)
+- Clinical layer (opt-in, evolving)
+- All changes require PR + review
+
 ## Mapa Rapido
 - `/.github/workflows/`: workflows reutilizables canonicos.
 - `/actions/`: composite actions para evitar duplicar pasos.
 - `/policies/conftest/`: politicas OPA/Conftest para repos infra/GitOps.
+- `/policies/clinical/`: overlay de reglas y esquemas clinicos (opt-in).
 - `/semgrep/rules/`: reglas de seguridad de dominio clinico.
 - `/templates/python/`: plantilla lista para crear nuevos repos.
 
@@ -18,6 +32,8 @@ Si es tu primera vez aqui, empieza por `docs/START_HERE.md`.
   Usa `.github/workflows/repro.yml` + `actions/compose-healthcheck`.
 - Quieres politicas para manifiestos:
   Usa `.github/workflows/infra-policy.yml` + `policies/conftest`.
+- Quieres validaciones de consentimiento clinico (opt-in):
+  Usa `policies/clinical/` con `enable_clinical: 'true'` en `actions/audit-pack`.
 - Quieres estandarizar cache Python:
   Usa `actions/python-cache`.
 - Quieres arrancar un repo nuevo:
@@ -34,6 +50,7 @@ Entradas principales:
 - `typecheck-command`
 - `test-command`
 - `artifact-name`
+- `enable_clinical`
 
 ### `actions/compose-healthcheck`
 Levanta `docker compose`, espera endpoint de salud, sube logs y ejecuta `down -v` siempre.

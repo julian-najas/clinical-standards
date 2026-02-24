@@ -1,0 +1,13 @@
+{
+  "active_standard": "v1.0",
+  "standards": {
+    "v1.0": {
+      "status": "stable",
+      "effective_date": "2026-02-24",
+      "compatible_with": [],
+      "schemas_path": "standards/v1.0/schemas",
+      "rego_path": "rego",
+      "tests_path": "test"
+    }
+  }
+}

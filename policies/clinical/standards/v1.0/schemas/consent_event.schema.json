@@ -1,0 +1,38 @@
+{
+  "$id": "https://clinical-standards.local/v1.0/schemas/consent_event.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Consent Event (v1.0)",
+  "type": "object",
+  "properties": {
+    "standard_version": { "type": "string", "const": "v1.0" },
+    "patient": {
+      "type": "object",
+      "properties": {
+        "patient_id": { "type": "string", "minLength": 1 }
+      },
+      "required": ["patient_id"],
+      "additionalProperties": false
+    },
+    "consent": {
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "enum": ["active", "revoked", "unknown"] },
+        "scope": { "type": "string", "enum": ["treatment", "research", "data_sharing"] },
+        "effective_from": { "type": "string", "format": "date-time" },
+        "effective_to": { "type": "string", "format": "date-time" }
+      },
+      "required": ["status", "scope", "effective_from"],
+      "additionalProperties": false
+    },
+    "event": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "minLength": 1 }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["standard_version", "patient", "consent", "event"],
+  "additionalProperties": false
+}

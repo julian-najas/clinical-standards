@@ -1,0 +1,11 @@
+{
+  "standard_version": "v1.0",
+  "patient": { "patient_id": "p-001" },
+  "consent": {
+    "status": "active",
+    "scope": "research",
+    "effective_from": "2026-02-24T10:00:00Z",
+    "effective_to": "2026-02-24T09:00:00Z"
+  },
+  "event": { "type": "research.export" }
+}
