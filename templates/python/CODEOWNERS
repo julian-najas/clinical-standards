@@ -1,1 +1,6 @@
-* @clinical-standards-team
+# Replace with your team or user handles when bootstrapping a new repo.
+* @ORG/clinical-platform
+
+# Protect CI definitions.
+.github/workflows/* @ORG/platform-security
+.github/actions/* @ORG/platform-security

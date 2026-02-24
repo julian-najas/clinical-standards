@@ -1,24 +1,37 @@
-name: clinical-template
+name: python-service
 
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    env_file:
-      - .env
     environment:
+      ENV: ${ENV:-dev}
+      APP_NAME: ${APP_NAME:-clinical-service}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      HOST: ${HOST:-0.0.0.0}
+      PORT: ${PORT:-8000}
+      UVICORN_APP: ${UVICORN_APP:-app.main:app}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://app:app_dev_password@postgres:5432/app_dev}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+      JWT_ALG: ${JWT_ALG:-HS256}
+      TOKEN_TTL_MIN: ${TOKEN_TTL_MIN:-30}
+      HMAC_SECRET: ${HMAC_SECRET:-dev-only-change-me}
       PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    command: >
+      sh -lc "uvicorn ${UVICORN_APP:-app.main:app} --host 0.0.0.0 --port ${PORT:-8000}"
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()\""]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:${PORT:-8000}/health').read()\""]
       interval: 10s
       timeout: 3s
-      retries: 12
+      retries: 15
     restart: unless-stopped
 
   postgres:

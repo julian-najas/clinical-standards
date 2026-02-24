@@ -3,9 +3,3 @@ services:
     command: pytest -q
     ports: []
     volumes: []
-
-  postgres:
-    ports: []
-
-  redis:
-    ports: []

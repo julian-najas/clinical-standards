@@ -1,26 +1,43 @@
 # Python Template
 
-Plantilla base para que un repo nuevo nazca en modo "empresa-grade" sin pensar.
+Plantilla canonica para que un nuevo repo Python (FastAPI + Postgres + Redis)
+nazca correcto desde el primer commit.
 
-## Incluye
+## Estructura incluida
+- `Dockerfile`
+- `docker-compose.yml`
+- `docker-compose.dev.yml`
+- `docker-compose.ci.yml`
+- `Makefile`
 - `.env.example`
-- `Makefile` con `make up`, `make test`, `make audit`
-- `docker-compose.yml` (base)
-- `docker-compose.dev.yml` (overlay dev)
-- `docker-compose.ci.yml` (overlay ci)
+- `.gitignore`
+- `.dockerignore`
+- `.editorconfig`
+- `.pre-commit-config.yaml`
+- `pyproject.toml`
+- `src/app/main.py`
+- `tests/test_health.py`
 - `docs/runbook.md`
-- baseline de seguridad (`CODEOWNERS`, `dependabot.yml`, `SECURITY.md`)
+- `runbook.md` (alias por compatibilidad)
+- `CODEOWNERS`
+- `dependabot.yml`
+- `SECURITY.md`
 
 ## Uso rapido
-1. Copia esta carpeta al repo nuevo.
+1. Copia todo `templates/python/*` al nuevo repositorio.
 2. Crea `.env` desde `.env.example`.
-3. Ajusta `UVICORN_APP`/comando de arranque de tu app.
-4. Ejecuta:
+3. Ejecuta:
    - `make up`
    - `make health`
    - `make audit`
 
-## Minimo esperado para aceptar el repo
-- El stack levanta con `make up` sin pasos manuales ocultos.
+## Criterio de aceptacion
+- `make up` levanta API + Postgres + Redis sin pasos ocultos.
+- `make health` responde `ok`.
 - `make audit` queda en verde.
-- `docs/runbook.md` adaptado al servicio real.
+- `docs/runbook.md` se adapta al dominio real del servicio.
+
+## Notas de seguridad
+- No subir `.env` al repositorio.
+- Postgres y Redis no se exponen fuera del compose por defecto.
+- No usar imagenes `:latest` en repos productivos.
