@@ -1,0 +1,5 @@
+# CODEOWNERS para clinical-standards
+/.github/workflows/* @clinical-standards-team
+/actions/* @clinical-standards-team
+/policies/* @clinical-standards-team
+/semgrep/* @clinical-standards-team
