@@ -1,13 +1,49 @@
-# Workflow para reproducibilidad
+# Workflow de reproducibilidad: clona y levanta stack docker compose + health parametrizable
 name: Reproducibility Check
 on:
-  push:
-    paths:
-      - 'templates/python/**'
+  workflow_dispatch:
+    inputs:
+      repo_url:
+        description: 'URL del repo a clonar'
+        required: true
+        default: ''
+      compose_file:
+        description: 'Ruta a docker-compose.yml'
+        required: false
+        default: 'docker-compose.yml'
+      health_endpoint:
+        description: 'Endpoint de healthcheck'
+        required: false
+        default: 'http://localhost:8080/health'
 jobs:
   repro:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Run Compose Healthcheck
-        uses: ./actions/compose-healthcheck/
+      - name: Clonar repo
+        run: |
+          git clone ${{ github.event.inputs.repo_url }} repo
+          cd repo
+      - name: Levantar stack docker compose
+        run: |
+          cd repo
+          docker compose -f ${{ github.event.inputs.compose_file }} up -d
+      - name: Esperar healthcheck
+        run: |
+          cd repo
+          for i in {1..20}; do
+            if curl -fsSL ${{ github.event.inputs.health_endpoint }}; then
+              echo "Servicio saludable"; exit 0;
+            fi
+            sleep 3
+          done
+          echo "Timeout esperando healthcheck"; exit 1
+      - name: Logs de servicios
+        run: |
+          cd repo
+          docker compose logs
+        if: failure()
+      - name: Bajar stack
+        run: |
+          cd repo
+          docker compose down -v
+        if: always()
