@@ -1,34 +1,133 @@
-
-# Reusable workflow: Reproducibility Check (v1.0.0)
 name: Reproducibility Check
+
 on:
   workflow_call:
     inputs:
+      project_directory:
+        description: "Directory where docker compose will run."
+        required: false
+        type: string
+        default: "."
       compose_file:
+        description: "Path to docker-compose file."
         required: false
         type: string
-        default: 'docker-compose.yml'
+        default: "docker-compose.yml"
+      profile:
+        description: "Optional docker compose profile."
+        required: false
+        type: string
+        default: ""
+      up_flags:
+        description: "Flags for compose up."
+        required: false
+        type: string
+        default: "--build -d"
+      down_flags:
+        description: "Flags for compose down."
+        required: false
+        type: string
+        default: "down -v"
       health_url:
+        description: "HTTP endpoint to verify health."
         required: false
         type: string
-        default: 'http://localhost:8080/health'
+        default: "http://127.0.0.1:8000/health"
       timeout_seconds:
-        required: false
-        type: number
-        default: 60
-      compose_args:
+        description: "Maximum wait time for healthcheck."
         required: false
         type: string
-        default: ''
+        default: "120"
+      interval_seconds:
+        description: "Seconds between health retries."
+        required: false
+        type: string
+        default: "2"
+      artifacts_dir:
+        description: "Directory for compose logs/artifacts."
+        required: false
+        type: string
+        default: ".artifacts/compose-healthcheck"
+      artifact_name:
+        description: "Artifact name in GitHub Actions."
+        required: false
+        type: string
+        default: "repro-compose-logs"
+
+  workflow_dispatch:
+    inputs:
+      project_directory:
+        description: "Directory where docker compose will run."
+        required: false
+        type: string
+        default: "."
+      compose_file:
+        description: "Path to docker-compose file."
+        required: false
+        type: string
+        default: "docker-compose.yml"
+      profile:
+        description: "Optional docker compose profile."
+        required: false
+        type: string
+        default: ""
+      up_flags:
+        description: "Flags for compose up."
+        required: false
+        type: string
+        default: "--build -d"
+      down_flags:
+        description: "Flags for compose down."
+        required: false
+        type: string
+        default: "down -v"
+      health_url:
+        description: "HTTP endpoint to verify health."
+        required: false
+        type: string
+        default: "http://127.0.0.1:8000/health"
+      timeout_seconds:
+        description: "Maximum wait time for healthcheck."
+        required: false
+        type: string
+        default: "120"
+      interval_seconds:
+        description: "Seconds between health retries."
+        required: false
+        type: string
+        default: "2"
+      artifacts_dir:
+        description: "Directory for compose logs/artifacts."
+        required: false
+        type: string
+        default: ".artifacts/compose-healthcheck"
+      artifact_name:
+        description: "Artifact name in GitHub Actions."
+        required: false
+        type: string
+        default: "repro-compose-logs"
+
+permissions:
+  contents: read
+
 jobs:
   repro:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - name: Levantar stack docker compose
-        uses: ./actions/compose-healthcheck/
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Fire test (clone + up + health + logs + down)
+        uses: ./actions/compose-healthcheck
         with:
-          compose_file: ${{ inputs.compose_file }}
-          health_url: ${{ inputs.health_url }}
-          timeout_seconds: ${{ inputs.timeout_seconds }}
-          compose_args: ${{ inputs.compose_args }}
+          project-directory: ${{ inputs.project_directory }}
+          compose-file: ${{ inputs.compose_file }}
+          profile: ${{ inputs.profile }}
+          up-flags: ${{ inputs.up_flags }}
+          down-flags: ${{ inputs.down_flags }}
+          health-url: ${{ inputs.health_url }}
+          timeout-seconds: ${{ inputs.timeout_seconds }}
+          interval-seconds: ${{ inputs.interval_seconds }}
+          artifacts-dir: ${{ inputs.artifacts_dir }}
+          artifact-name: ${{ inputs.artifact_name }}

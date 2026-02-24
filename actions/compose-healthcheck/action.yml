@@ -1,81 +1,45 @@
-name: 'Compose Healthcheck'
-description: 'Levanta stack docker compose, espera health_url, logs en fallo, down -v siempre.'
+name: "Compose Healthcheck"
+description: "Bring up docker compose, wait health endpoint, collect logs, and always down -v."
+
 inputs:
-  compose_file:
-    required: false
-    default: 'docker-compose.yml'
-    description: 'Archivo docker-compose a usar'
-  health_url:
-    required: false
-    default: 'http://localhost:8080/health'
-    description: 'Endpoint de healthcheck'
-  timeout_seconds:
-    required: false
-    default: '60'
-    description: 'Timeout para healthcheck (segundos)'
-  compose_args:
-    required: false
-    default: ''
-    description: 'Argumentos extra para docker compose'
-runs:
-  using: 'composite'
-  steps:
-    - name: Levantar stack docker compose
-      run: |
-        docker compose -f ${{ inputs.compose_file }} up -d --build ${{ inputs.compose_args }}
-    - name: Esperar healthcheck
-      run: |
-        for i in $(seq 1 $(( ${{ inputs.timeout_seconds }} / 3 ))); do
-          if curl -fsSL ${{ inputs.health_url }}; then
-            echo "Servicio saludable"; exit 0;
-          fi
-          sleep 3
-        done
-        echo "Timeout esperando healthcheck"; exit 1
-    - name: Logs de servicios si falla
-      if: failure()
-      run: |
-        docker compose -f ${{ inputs.compose_file }} logs
-    - name: Bajar stack siempre
-      if: always()
-      run: |
-        docker compose -f ${{ inputs.compose_file }} down -v
+  compose-file:
+    description: "Path to docker-compose file."
     required: false
     default: "docker-compose.yml"
   project-directory:
-    description: "Directorio donde ejecutar docker compose."
+    description: "Directory where docker compose will run."
     required: false
     default: "."
   profile:
-    description: "Profile opcional de docker compose."
+    description: "Optional docker compose profile."
     required: false
     default: ""
   up-flags:
-    description: "Flags para compose up."
+    description: "Flags for compose up."
     required: false
     default: "--build -d"
   down-flags:
-    description: "Flags para compose down."
+    description: "Flags for compose down."
     required: false
     default: "down -v"
   health-url:
-    description: "Endpoint de salud a validar."
+    description: "HTTP endpoint to verify health."
     required: false
     default: "http://127.0.0.1:8000/health"
   timeout-seconds:
-    description: "Tiempo maximo de espera para healthcheck."
+    description: "Maximum wait time for healthcheck."
     required: false
     default: "120"
   interval-seconds:
-    description: "Intervalo entre reintentos de healthcheck."
+    description: "Seconds between health retries."
     required: false
     default: "2"
   artifacts-dir:
-    description: "Directorio para logs del compose."
+    description: "Directory for compose logs/artifacts."
     required: false
     default: ".artifacts/compose-healthcheck"
   artifact-name:
-    description: "Nombre del artefacto de logs en GitHub Actions."
+    description: "Artifact name in GitHub Actions."
     required: false
     default: "compose-healthcheck-logs"
 
@@ -158,5 +122,5 @@ runs:
       if: ${{ steps.run-compose-healthcheck.outputs.failed == '1' }}
       shell: bash
       run: |
-        echo "compose-healthcheck fallo."
+        echo "compose-healthcheck failed"
         exit 1
