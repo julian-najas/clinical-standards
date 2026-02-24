@@ -51,6 +51,7 @@ Entradas principales:
 - `test-command`
 - `artifact-name`
 - `enable_clinical`
+- `opa_version`
 
 ### `actions/compose-healthcheck`
 Levanta `docker compose`, espera endpoint de salud, sube logs y ejecuta `down -v` siempre.

@@ -47,6 +47,10 @@ inputs:
     required: false
     default: 'false'
     description: 'Enable clinical OPA tests (opt-in)'
+  opa_version:
+    required: false
+    default: 'v1.5.1'
+    description: 'OPA version used for clinical tests'
 
 runs:
   using: 'composite'
@@ -123,7 +127,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static
+        curl -L -o opa "https://openpolicyagent.org/downloads/${{ inputs.opa_version }}/opa_linux_amd64_static"
         chmod +x opa
         sudo mv opa /usr/local/bin/opa
         opa test policies/clinical -v
