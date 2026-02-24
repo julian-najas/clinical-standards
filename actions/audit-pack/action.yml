@@ -1,6 +1,120 @@
-name: 'Clinical Audit Pack'
-description: 'Ejecuta auditorías clínicas estándar.'
+name: "Clinical Audit Pack"
+description: "Instala herramientas, ejecuta checks y publica artefactos de auditoria."
+
+inputs:
+  install-command:
+    description: "Comando para instalar dependencias y herramientas."
+    required: false
+    default: ""
+  lint-command:
+    description: "Comando de lint/formato."
+    required: false
+    default: "ruff check src tests && ruff format --check src tests"
+  typecheck-command:
+    description: "Comando de tipado estatico."
+    required: false
+    default: "mypy src"
+  test-command:
+    description: "Comando de tests."
+    required: false
+    default: "pytest -q"
+  run-lint:
+    description: "Si ejecutar lint."
+    required: false
+    default: "true"
+  run-typecheck:
+    description: "Si ejecutar typecheck."
+    required: false
+    default: "true"
+  run-tests:
+    description: "Si ejecutar tests."
+    required: false
+    default: "true"
+  artifacts-dir:
+    description: "Directorio donde dejar logs/resultados."
+    required: false
+    default: ".artifacts/audit"
+  artifact-name:
+    description: "Nombre del artefacto en GitHub Actions."
+    required: false
+    default: "audit-artifacts"
+
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
-    - run: echo "Audit pack ejecutado"
+    - id: run-audit
+      shell: bash
+      env:
+        INSTALL_COMMAND: ${{ inputs.install-command }}
+        LINT_COMMAND: ${{ inputs.lint-command }}
+        TYPECHECK_COMMAND: ${{ inputs.typecheck-command }}
+        TEST_COMMAND: ${{ inputs.test-command }}
+        RUN_LINT: ${{ inputs.run-lint }}
+        RUN_TYPECHECK: ${{ inputs.run-typecheck }}
+        RUN_TESTS: ${{ inputs.run-tests }}
+        ARTIFACTS_DIR: ${{ inputs.artifacts-dir }}
+      run: |
+        set +e
+        mkdir -p "${ARTIFACTS_DIR}"
+        overall_failed=0
+
+        run_cmd() {
+          name="$1"
+          cmd="$2"
+
+          if [ -z "${cmd}" ]; then
+            echo "${name}: skipped (empty command)" | tee "${ARTIFACTS_DIR}/${name}.log"
+            echo "0" > "${ARTIFACTS_DIR}/${name}.exit"
+            return 0
+          fi
+
+          echo "[${name}] ${cmd}" | tee "${ARTIFACTS_DIR}/${name}.log"
+          bash -lc "${cmd}" 2>&1 | tee -a "${ARTIFACTS_DIR}/${name}.log"
+          code=${PIPESTATUS[0]}
+          echo "${code}" > "${ARTIFACTS_DIR}/${name}.exit"
+
+          if [ "${code}" -ne 0 ]; then
+            overall_failed=1
+          fi
+        }
+
+        if [ -n "${INSTALL_COMMAND}" ]; then
+          run_cmd "install" "${INSTALL_COMMAND}"
+        fi
+
+        if [ "${RUN_LINT}" = "true" ]; then
+          run_cmd "lint" "${LINT_COMMAND}"
+        fi
+
+        if [ "${RUN_TYPECHECK}" = "true" ]; then
+          run_cmd "typecheck" "${TYPECHECK_COMMAND}"
+        fi
+
+        if [ "${RUN_TESTS}" = "true" ]; then
+          run_cmd "tests" "${TEST_COMMAND}"
+        fi
+
+        {
+          echo "Clinical Audit Pack"
+          echo "run_lint=${RUN_LINT}"
+          echo "run_typecheck=${RUN_TYPECHECK}"
+          echo "run_tests=${RUN_TESTS}"
+          echo "overall_failed=${overall_failed}"
+        } > "${ARTIFACTS_DIR}/summary.txt"
+
+        echo "overall_failed=${overall_failed}" >> "${GITHUB_OUTPUT}"
+
+    - name: Upload audit artifacts
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.artifacts-dir }}
+        if-no-files-found: error
+        retention-days: 30
+
+    - name: Fail if any audit check failed
+      if: ${{ steps.run-audit.outputs.overall_failed == '1' }}
+      shell: bash
+      run: |
+        echo "audit-pack detecto checks fallidos."
+        exit 1

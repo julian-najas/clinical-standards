@@ -1,0 +1,40 @@
+name: "Python Cache"
+description: "Configura Python y caching consistente para dependencias."
+
+inputs:
+  python-version:
+    description: "Version de Python."
+    required: false
+    default: "3.12"
+  cache:
+    description: "Tipo de cache para setup-python (pip/pipenv/poetry)."
+    required: false
+    default: "pip"
+  cache-dependency-path:
+    description: "Patrones de ficheros para invalidar cache."
+    required: false
+    default: |
+      requirements.lock
+      requirements-dev.lock
+      requirements.txt
+      requirements-dev.txt
+      pyproject.toml
+  install-command:
+    description: "Comando opcional de instalacion."
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Python with cache
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: ${{ inputs.cache }}
+        cache-dependency-path: ${{ inputs.cache-dependency-path }}
+
+    - name: Install dependencies
+      if: ${{ inputs.install-command != '' }}
+      shell: bash
+      run: ${{ inputs.install-command }}
