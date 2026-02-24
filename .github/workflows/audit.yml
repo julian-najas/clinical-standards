@@ -1,15 +1,5 @@
-
-
-# Reusable workflow: Clinical Audit (v1.0.0)
-#
-# Inputs:
-#   repo_type: Tipo de repositorio (critical, standard, etc.)
-#   python_version: Versión de Python (default: 3.11)
-#   semgrep_config: Ruta a config de Semgrep (default: .semgrep.yml)
-# Outputs:
-#   Artifacts en artifacts/ (report.md, gitleaks, semgrep, etc.)
-#
 name: Clinical Audit
+
 on:
   workflow_call:
     inputs:
@@ -24,57 +14,78 @@ on:
         required: false
         type: string
         default: '.semgrep.yml'
+
 jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Preparar carpeta artifacts
+
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Prepare artifacts directory
         run: mkdir -p artifacts
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ inputs.python_version }}
+
       - name: P0 - Gitleaks (secret scanning)
+        id: gitleaks
+        continue-on-error: true
         uses: gitleaks/gitleaks-action@v2
         with:
-          args: "detect --source=. --report-path=artifacts/gitleaks-report.json --exit-code=1"
-      - name: P0 - Audit Pack (ruff, pip-audit, pytest)
-        uses: ./actions/audit-pack/
+          args: >-
+            detect --source=. --no-banner --redact
+            --report-format json --report-path=artifacts/gitleaks-report.json
+            --exit-code=1
+
+      - name: P0 - Audit Pack (ruff, mypy, pytest)
+        uses: julian-najas/clinical-standards/actions/audit-pack@main
         with:
           python_version: ${{ inputs.python_version }}
+          install-command: >-
+            python -m pip install --upgrade pip &&
+            pip install ruff mypy pytest
+
       - name: P1 - Semgrep
         run: |
           pip install semgrep
-          semgrep --config ${{ inputs.semgrep_config }} --json > artifacts/semgrep-report.json || true
-      - name: Generar artifacts/report.md
+          semgrep --config "${{ inputs.semgrep_config }}" --json --output artifacts/semgrep-report.json || true
+
+      - name: Generate artifacts/report.md
+        shell: bash
         run: |
           echo "# Clinical Audit Report" > artifacts/report.md
-          echo "\n## Gitleaks" >> artifacts/report.md
+
+          echo "" >> artifacts/report.md
+          echo "## Gitleaks" >> artifacts/report.md
           if [ -s artifacts/gitleaks-report.json ]; then
-            cat artifacts/gitleaks-report.json >> artifacts/report.md
+            echo "- Findings: $(jq 'length' artifacts/gitleaks-report.json 2>/dev/null || echo 0)" >> artifacts/report.md
           else
-            echo "No gitleaks findings" >> artifacts/report.md
+            echo "- No gitleaks report generated" >> artifacts/report.md
           fi
-          echo "\n## Semgrep" >> artifacts/report.md
+
+          echo "" >> artifacts/report.md
+          echo "## Semgrep" >> artifacts/report.md
           if [ -s artifacts/semgrep-report.json ]; then
-            cat artifacts/semgrep-report.json >> artifacts/report.md
+            echo "- Findings: $(jq '.results | length' artifacts/semgrep-report.json 2>/dev/null || echo 0)" >> artifacts/report.md
           else
-            echo "No semgrep findings" >> artifacts/report.md
+            echo "- No semgrep report generated" >> artifacts/report.md
           fi
-          echo "\n## Resumen" >> artifacts/report.md
-          echo "- Gitleaks: $(jq length artifacts/gitleaks-report.json 2>/dev/null || echo 0) findings" >> artifacts/report.md
-          echo "- Semgrep: $(jq '.results | length' artifacts/semgrep-report.json 2>/dev/null || echo 0) findings" >> artifacts/report.md
-      - name: Subir artifacts
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: clinical-audit-artifacts
           path: artifacts/
-      - name: Enforcement por repo_type
+
+      - name: Enforce gitleaks failures
+        if: ${{ steps.gitleaks.outcome == 'failure' }}
+        run: |
+          echo "Gitleaks found leaks. Failing workflow."
+          exit 1
+
+      - name: Enforcement by repo_type
         if: ${{ inputs.repo_type == 'critical' }}
         run: |
-          echo "Enforcement estricto para repositorios críticos"
-          # Aquí puedes añadir lógica de enforcement según el tipo de repo
-      - name: Estado global del audit
-        run: |
-          echo "Audit finalizado. Revisa artifacts/report.md para el resumen y detalles."
+          echo "Strict enforcement for critical repositories"
