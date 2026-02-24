@@ -1,3 +1,5 @@
 # Runbook
 
-Instrucciones para operar y recuperar servicios clínicos.
+Este archivo se mantiene por compatibilidad.
+
+La version canonica esta en `docs/runbook.md`.
