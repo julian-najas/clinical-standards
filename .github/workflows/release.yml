@@ -1,30 +1,59 @@
-# Workflow de release: SBOM, provenance y firma/attestations
+# Workflow de release: SBOM, provenance y firma opcional
 name: Release
+
 on:
   release:
     types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  attestations: write
+  id-token: write
+
 jobs:
   sbom-provenance:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Generar SBOM (Syft)
         uses: anchore/sbom-action@v0
         with:
           output-file: sbom.spdx.json
+
       - name: Subir SBOM como artifact
         uses: actions/upload-artifact@v4
         with:
           name: sbom
           path: sbom.spdx.json
-      - name: Generar provenance (SLSA)
-        uses: slsa-framework/slsa-github-generator@v2
+
+      - name: Generar attestation de provenance
+        uses: actions/attest-build-provenance@v3
         with:
-          base64-subjects: ${{ github.sha }}
-      - name: Firmar release (cosign)
+          subject-path: sbom.spdx.json
+
+      - name: Instalar cosign (si hay clave)
+        if: ${{ secrets.COSIGN_PRIVATE_KEY != '' }}
         uses: sigstore/cosign-installer@v3
-      - name: Ejecutar firma
+
+      - name: Firmar SBOM (opcional)
+        if: ${{ secrets.COSIGN_PRIVATE_KEY != '' }}
         run: |
-          cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ github.sha }}
+          cosign sign-blob --yes \
+            --key env://COSIGN_PRIVATE_KEY \
+            --output-signature sbom.spdx.sig \
+            sbom.spdx.json
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+
+      - name: Subir firma de SBOM
+        if: ${{ secrets.COSIGN_PRIVATE_KEY != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-signature
+          path: sbom.spdx.sig
+
+      - name: Saltar firma cosign
+        if: ${{ secrets.COSIGN_PRIVATE_KEY == '' }}
+        run: echo "COSIGN_PRIVATE_KEY no configurada; se omite firma cosign."
