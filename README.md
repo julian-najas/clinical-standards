@@ -2,10 +2,31 @@
 
 Repositorio canonico para seguridad, reproducibilidad y gobierno clinico.
 
+Si es tu primera vez aqui, empieza por `docs/START_HERE.md`.
+
+## Mapa Rapido
+- `/.github/workflows/`: workflows reutilizables canonicos.
+- `/actions/`: composite actions para evitar duplicar pasos.
+- `/policies/conftest/`: politicas OPA/Conftest para repos infra/GitOps.
+- `/semgrep/rules/`: reglas de seguridad de dominio clinico.
+- `/templates/python/`: plantilla lista para crear nuevos repos.
+
+## Que Usar En Cada Caso
+- Quieres gate de calidad/seguridad en un repo app:
+  Usa `.github/workflows/audit.yml` + `actions/audit-pack`.
+- Quieres test de reproducibilidad docker:
+  Usa `.github/workflows/repro.yml` + `actions/compose-healthcheck`.
+- Quieres politicas para manifiestos:
+  Usa `.github/workflows/infra-policy.yml` + `policies/conftest`.
+- Quieres estandarizar cache Python:
+  Usa `actions/python-cache`.
+- Quieres arrancar un repo nuevo:
+  Copia `templates/python/` completo.
+
 ## Composite Actions
 
-### actions/audit-pack
-Instala herramientas, ejecuta checks y publica artifacts con logs y salidas.
+### `actions/audit-pack`
+Instala herramientas, ejecuta checks y sube artifacts con logs/resultados.
 
 Entradas principales:
 - `install-command`
@@ -14,8 +35,8 @@ Entradas principales:
 - `test-command`
 - `artifact-name`
 
-### actions/compose-healthcheck
-Levanta `docker compose`, espera endpoint de salud, captura logs en fallo y ejecuta `down -v` siempre.
+### `actions/compose-healthcheck`
+Levanta `docker compose`, espera endpoint de salud, sube logs y ejecuta `down -v` siempre.
 
 Entradas principales:
 - `compose-file`
@@ -24,8 +45,8 @@ Entradas principales:
 - `timeout-seconds`
 - `artifact-name`
 
-### actions/python-cache
-Estandariza setup de Python + cache de dependencias en GitHub Actions.
+### `actions/python-cache`
+Estandariza `setup-python` + cache de dependencias y comando de instalacion opcional.
 
 Entradas principales:
 - `python-version`
@@ -33,7 +54,17 @@ Entradas principales:
 - `cache-dependency-path`
 - `install-command`
 
-## Workflows reutilizables
+## Workflows Reutilizables
 - `.github/workflows/audit.yml`
 - `.github/workflows/repro.yml`
 - `.github/workflows/infra-policy.yml`
+- `.github/workflows/release.yml`
+
+## Plantilla Recomendada
+La base para proyectos nuevos esta en `templates/python/`.
+
+Incluye:
+- `.env.example`
+- `Makefile` (con `make up/test/audit`)
+- `docker-compose.yml` + overlays dev/ci
+- `docs/runbook.md`
