@@ -1,32 +1,56 @@
-# Workflow de auditoría clínica con gates P0/P1/P2 y artifacts
+
+# Reusable workflow: Clinical Audit (v1.0.0)
 name: Clinical Audit
 on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
+  workflow_call:
+    inputs:
+      repo_type:
+        required: true
+        type: string
+      python_version:
+        required: false
+        type: string
+        default: '3.11'
+      semgrep_config:
+        required: false
+        type: string
+        default: '.semgrep.yml'
 jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Instalar dependencias de auditoría
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version }}
+      - name: P0 - Gitleaks (secret scanning)
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: "detect --source=. --report-path=artifacts/gitleaks-report.json --exit-code=1"
+      - name: P0 - Audit Pack (ruff, pip-audit, pytest)
+        uses: ./actions/audit-pack/
+        with:
+          python_version: ${{ inputs.python_version }}
+      - name: P1 - Semgrep
         run: |
-          pip install -r requirements.txt || true
-      - name: Ejecutar auditoría P0
+          pip install semgrep
+          semgrep --config ${{ inputs.semgrep_config }} --json > artifacts/semgrep-report.json || true
+      - name: Generar artifacts/report.md
         run: |
-          echo "Audit P0"
-        continue-on-error: false
-      - name: Ejecutar auditoría P1
-        run: |
-          echo "Audit P1"
-        continue-on-error: true
-      - name: Ejecutar auditoría P2
-        run: |
-          echo "Audit P2"
-        continue-on-error: true
-      - name: Subir artifacts de auditoría
+          mkdir -p artifacts
+          echo "# Clinical Audit Report" > artifacts/report.md
+          echo "\n## Gitleaks" >> artifacts/report.md
+          cat artifacts/gitleaks-report.json >> artifacts/report.md || echo "No gitleaks report"
+          echo "\n## Semgrep" >> artifacts/report.md
+          cat artifacts/semgrep-report.json >> artifacts/report.md || echo "No semgrep report"
+      - name: Subir artifacts
         uses: actions/upload-artifact@v4
         with:
           name: clinical-audit-artifacts
           path: artifacts/
+      - name: Enforcement por repo_type
+        if: ${{ inputs.repo_type == 'critical' }}
+        run: |
+          echo "Enforcement estricto para repositorios críticos"
+          # Aquí puedes añadir lógica de enforcement según el tipo de repo
