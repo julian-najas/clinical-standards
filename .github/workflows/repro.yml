@@ -1,49 +1,34 @@
-# Workflow de reproducibilidad: clona y levanta stack docker compose + health parametrizable
+
+# Reusable workflow: Reproducibility Check (v1.0.0)
 name: Reproducibility Check
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      repo_url:
-        description: 'URL del repo a clonar'
-        required: true
-        default: ''
       compose_file:
-        description: 'Ruta a docker-compose.yml'
         required: false
+        type: string
         default: 'docker-compose.yml'
-      health_endpoint:
-        description: 'Endpoint de healthcheck'
+      health_url:
         required: false
+        type: string
         default: 'http://localhost:8080/health'
+      timeout_seconds:
+        required: false
+        type: number
+        default: 60
+      compose_args:
+        required: false
+        type: string
+        default: ''
 jobs:
   repro:
     runs-on: ubuntu-latest
     steps:
-      - name: Clonar repo
-        run: |
-          git clone ${{ github.event.inputs.repo_url }} repo
-          cd repo
+      - uses: actions/checkout@v4
       - name: Levantar stack docker compose
-        run: |
-          cd repo
-          docker compose -f ${{ github.event.inputs.compose_file }} up -d
-      - name: Esperar healthcheck
-        run: |
-          cd repo
-          for i in {1..20}; do
-            if curl -fsSL ${{ github.event.inputs.health_endpoint }}; then
-              echo "Servicio saludable"; exit 0;
-            fi
-            sleep 3
-          done
-          echo "Timeout esperando healthcheck"; exit 1
-      - name: Logs de servicios
-        run: |
-          cd repo
-          docker compose logs
-        if: failure()
-      - name: Bajar stack
-        run: |
-          cd repo
-          docker compose down -v
-        if: always()
+        uses: ./actions/compose-healthcheck/
+        with:
+          compose_file: ${{ inputs.compose_file }}
+          health_url: ${{ inputs.health_url }}
+          timeout_seconds: ${{ inputs.timeout_seconds }}
+          compose_args: ${{ inputs.compose_args }}
