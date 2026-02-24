@@ -1,10 +1,33 @@
 rules:
-  - id: clinical-security-best-practices
-    patterns:
-      - pattern: $X = input()
-    message: No uses input() sin validación
+  - id: no-logs-authorization-token-secret
+    pattern-either:
+      - pattern: "logging.*(Authorization|authorization|token|secret)"
+      - pattern: "print(Authorization)"
+      - pattern: "print(token)"
+      - pattern: "print(secret)"
+    message: "No loggear Authorization, token o secret."
     severity: ERROR
     languages: [python]
     metadata:
-      category: security
+      category: logging
+      technology: python
+
+  - id: requests-insecure-verify
+    pattern: "requests.*(verify=False|ssl=False)"
+    message: "No usar verify=False o ssl=False en requests."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: requests
+      technology: python
+
+  - id: no-eval-exec
+    pattern-either:
+      - pattern: "eval($X)"
+      - pattern: "exec($X)"
+    message: "Evita el uso de eval() o exec()."
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: dangerous-func
       technology: python
