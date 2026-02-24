@@ -1,0 +1,10 @@
+rules:
+  - id: clinical-security-best-practices
+    patterns:
+      - pattern: $X = input()
+    message: No uses input() sin validación
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      technology: python

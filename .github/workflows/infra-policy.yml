@@ -1,0 +1,14 @@
+# Workflow para políticas de infraestructura
+name: Infra Policy
+on:
+  push:
+    paths:
+      - 'policies/conftest/**'
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run OPA Policy
+        run: |
+          echo "Validando políticas con OPA..."

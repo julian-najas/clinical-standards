@@ -1,0 +1,14 @@
+# Workflow para auditoría clínica
+name: Clinical Audit
+on:
+  push:
+    paths:
+      - 'policies/**'
+      - 'actions/audit-pack/**'
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Audit Pack
+        uses: ./actions/audit-pack/

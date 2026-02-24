@@ -1,0 +1,13 @@
+# Workflow para reproducibilidad
+name: Reproducibility Check
+on:
+  push:
+    paths:
+      - 'templates/python/**'
+jobs:
+  repro:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Compose Healthcheck
+        uses: ./actions/compose-healthcheck/

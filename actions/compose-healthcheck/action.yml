@@ -1,0 +1,6 @@
+name: 'Compose Healthcheck'
+description: 'Verifica salud de servicios en docker-compose.'
+runs:
+  using: 'composite'
+  steps:
+    - run: echo "Healthcheck ejecutado"

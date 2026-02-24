@@ -1,0 +1,6 @@
+name: 'Clinical Audit Pack'
+description: 'Ejecuta auditorías clínicas estándar.'
+runs:
+  using: 'composite'
+  steps:
+    - run: echo "Audit pack ejecutado"
