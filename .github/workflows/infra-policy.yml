@@ -1,14 +1,22 @@
-# Workflow para políticas de infraestructura
+# Workflow de políticas de infraestructura: OPA/Conftest para repos de infra/GitOps
 name: Infra Policy
 on:
-  push:
+  pull_request:
     paths:
+      - '**/*.yaml'
+      - '**/*.yml'
       - 'policies/conftest/**'
 jobs:
-  policy:
+  opa-conftest:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run OPA Policy
+      - name: Instalar OPA y Conftest
         run: |
-          echo "Validando políticas con OPA..."
+          curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64
+          chmod +x opa && sudo mv opa /usr/local/bin/
+          curl -L -o conftest.tar.gz https://github.com/open-policy-agent/conftest/releases/latest/download/conftest_Linux_x86_64.tar.gz
+          tar -xzf conftest.tar.gz && sudo mv conftest /usr/local/bin/
+      - name: Ejecutar Conftest sobre manifiestos
+        run: |
+          conftest test .
