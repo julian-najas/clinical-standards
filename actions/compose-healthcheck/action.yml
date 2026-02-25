@@ -37,7 +37,7 @@ inputs:
   artifacts-dir:
     description: "Directory for compose logs/artifacts."
     required: false
-    default: ".artifacts/compose-healthcheck"
+    default: "artifacts/compose-healthcheck"
   artifact-name:
     description: "Artifact name in GitHub Actions."
     required: false

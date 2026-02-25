@@ -18,3 +18,42 @@ jobs:
         run: |
           test -f README.md
           test -f VERSIONING.md
+      - name: Enforce non-hidden artifact defaults
+        shell: bash
+        run: |
+          set -euo pipefail
+          failures=0
+
+          while IFS= read -r -d '' file; do
+            if ! awk -v file="$file" '
+              function indent(s) { match(s, /^[[:space:]]*/); return RLENGTH }
+              BEGIN { in_artifact_block = 0; base_indent = -1; bad = 0 }
+              {
+                line = $0
+                current_indent = indent(line)
+
+                if (in_artifact_block && current_indent <= base_indent && line !~ /^[[:space:]]*$/) {
+                  in_artifact_block = 0
+                }
+
+                if (line ~ /^[[:space:]]*(artifacts-dir|artifacts_dir):[[:space:]]*$/) {
+                  in_artifact_block = 1
+                  base_indent = current_indent
+                  next
+                }
+
+                if (in_artifact_block && line ~ /^[[:space:]]*default:[[:space:]]*["\047]\./) {
+                  printf "%s:%d:%s\n", file, NR, line
+                  bad = 1
+                }
+              }
+              END { exit bad ? 1 : 0 }
+            ' "$file"; then
+              failures=1
+            fi
+          done < <(find actions .github/workflows -type f \( -name "*.yml" -o -name "*.yaml" \) -print0)
+
+          if [ "${failures}" -ne 0 ]; then
+            echo "Hidden artifact defaults are not allowed. Use paths like artifacts/... instead."
+            exit 1
+          fi

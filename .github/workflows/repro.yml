@@ -47,7 +47,7 @@ on:
         description: "Directory for compose logs/artifacts."
         required: false
         type: string
-        default: ".artifacts/compose-healthcheck"
+        default: "artifacts/compose-healthcheck"
       artifact_name:
         description: "Artifact name in GitHub Actions."
         required: false
@@ -100,7 +100,7 @@ on:
         description: "Directory for compose logs/artifacts."
         required: false
         type: string
-        default: ".artifacts/compose-healthcheck"
+        default: "artifacts/compose-healthcheck"
       artifact_name:
         description: "Artifact name in GitHub Actions."
         required: false
