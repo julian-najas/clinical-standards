@@ -1,22 +1,45 @@
 # Changelog
 
-All notable changes to this project are documented in this file.
+All notable changes to this project will be documented in this file.
+
+The format is based on **Keep a Changelog**, and this project adheres to **Semantic Versioning**.
+See `VERSIONING.md` for the contract definition.
+
+---
 
 ## [Unreleased]
 
-## [1.1.0] - 2026-02-25
+### Added
+- (placeholder)
 
 ### Changed
-- Unified OPA setup through a shared action (`actions/setup-opa`).
-- Upgraded and aligned OPA default version to `v1.13.2` across policy workflows.
-- Replaced fixed external action SHA usage for `audit-pack` with same-ref local action resolution in reusable workflows.
-- Pinned Semgrep engine version in reusable audit workflow (`semgrep_version`, default `1.145.0`).
+- (placeholder)
+
+### Deprecated
+- (placeholder)
+
+### Removed
+- (placeholder)
+
+### Fixed
+- (placeholder)
 
 ### Security
-- Added checksum verification and retry logic for OPA and Conftest downloads.
-- Removed floating references in reusable action wiring and enforced deterministic workflow toolchain behavior.
+- (placeholder)
+
+---
 
 ## [1.0.0] - 2026-02-24
 
 ### Added
-- Clinical standard baseline (`policies/clinical/standards/v1.0`).
+- First stable institutional baseline release:
+	- Audit workflow baseline (secrets + static analysis + standardized reports)
+	- Reproducibility workflow baseline
+	- Policy baselines (OPA/Conftest where applicable)
+	- Python template baseline
+
+---
+
+# Release links
+- [Unreleased]: compare/v1.0.0...HEAD
+- [1.0.0]: releases/tag/v1.0.0
