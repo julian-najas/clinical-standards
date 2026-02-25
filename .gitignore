@@ -5,3 +5,4 @@ opa.exe
 # Local audit outputs
 .artifacts/
 artifacts/
+examples/multiagent-clinic/eventlog/

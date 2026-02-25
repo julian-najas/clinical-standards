@@ -129,3 +129,41 @@ jobs:
           test -f docs/REFERENCE.md
           test -d actions/audit-pack
           test -d examples/python-service
+
+  mcp-runtime-smoke:
+    name: MCP runtime smoke (multiagent-clinic)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@a4a1c1e6e6e2e1e2e1e2e1e2e1e2e1e2e1e2e1e2 # v5
+        with:
+          python-version: '3.11'
+
+      - name: Install MCP runtime (editable)
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e "mcp/python[dev]"
+
+      - name: Install example requirements
+        run: |
+          python -m pip install -r examples/multiagent-clinic/requirements.txt || true
+          # No requirements.txt por defecto, ignora error
+
+      - name: Run multiagent orchestrator
+        working-directory: examples/multiagent-clinic
+        run: |
+          python orchestrator.py
+
+      - name: Assert eventlog exists y contiene eventos
+        working-directory: examples/multiagent-clinic
+        run: |
+          set -euo pipefail
+          test -f eventlog/events.jsonl
+          lines=$(wc -l < eventlog/events.jsonl)
+          if [ "$lines" -lt 3 ]; then
+            echo "Eventlog demasiado corto ($lines líneas)"
+            exit 1
+          fi
