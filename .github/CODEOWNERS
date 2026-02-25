@@ -1,5 +1,15 @@
-# CODEOWNERS para clinical-standards
-/.github/workflows/* @clinical-standards-team
-/actions/* @clinical-standards-team
-/policies/* @clinical-standards-team
-/semgrep/* @clinical-standards-team
+# Global ownership
+* @julian-najas
+
+# Critical surfaces
+/actions/ @julian-najas
+/.github/workflows/ @julian-najas
+/policies/ @julian-najas
+/templates/ @julian-najas
+/docs/ @julian-najas
+
+# Governance files (strict control)
+VERSIONING.md @julian-najas
+CHANGELOG.md @julian-najas
+SECURITY.md @julian-najas
+RELEASE.md @julian-najas
