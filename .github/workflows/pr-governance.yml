@@ -42,9 +42,14 @@ jobs:
                   next
                 }
 
-                if (in_artifact_block && line ~ /^[[:space:]]*default:[[:space:]]*["\047]\./) {
-                  printf "%s:%d:%s\n", file, NR, line
-                  bad = 1
+                if (in_artifact_block && line ~ /^[[:space:]]*default:[[:space:]]*/) {
+                  value = line
+                  sub(/^[[:space:]]*default:[[:space:]]*/, "", value)
+                  sub(/^[[:space:]]*["\047]?/, "", value)
+                  if (value ~ /^\./) {
+                    printf "%s:%d:%s\n", file, NR, line
+                    bad = 1
+                  }
                 }
               }
               END { exit bad ? 1 : 0 }
