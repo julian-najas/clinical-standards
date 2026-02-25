@@ -1,0 +1,131 @@
+name: Self-test (standards enforcement)
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  audit-pack-pass:
+    name: audit-pack / PASS path
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      checks: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Run audit-pack (PASS)
+        uses: ./actions/audit-pack
+        with:
+          python_version: "3.11"
+          artifacts-dir: "artifacts/self-test/pass"
+          artifact-name: "self-test-audit-pass"
+          install-command: >
+            python -m pip install -U pip &&
+            python -m pip install -e "examples/python-service[dev]"
+          lint-command: >
+            cd examples/python-service &&
+            ruff check . &&
+            ruff format --check .
+          typecheck-command: >
+            cd examples/python-service &&
+            mypy src
+          test-command: >
+            cd examples/python-service &&
+            pytest -q -k "not intentional_fail"
+          run-lint: "true"
+          run-typecheck: "true"
+          run-tests: "true"
+          enable_clinical: "false"
+
+      - name: Assert PASS artifacts exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f artifacts/self-test/pass/summary.txt
+          grep -q "overall_failed=0" artifacts/self-test/pass/summary.txt
+          test -f artifacts/self-test/pass/lint.exit
+          test -f artifacts/self-test/pass/typecheck.exit
+          test -f artifacts/self-test/pass/tests.exit
+
+  audit-pack-fail:
+    name: audit-pack / FAIL path (must fail deterministically)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      checks: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Run audit-pack (expected FAIL)
+        id: audit_fail
+        continue-on-error: true
+        uses: ./actions/audit-pack
+        with:
+          python_version: "3.11"
+          artifacts-dir: "artifacts/self-test/fail"
+          artifact-name: "self-test-audit-fail"
+          install-command: >
+            python -m pip install -U pip &&
+            python -m pip install -e "examples/python-service[dev]"
+          lint-command: >
+            cd examples/python-service &&
+            ruff check . &&
+            ruff format --check .
+          typecheck-command: >
+            cd examples/python-service &&
+            mypy src
+          test-command: >
+            cd examples/python-service &&
+            pytest -q
+          run-lint: "true"
+          run-typecheck: "true"
+          run-tests: "true"
+          enable_clinical: "false"
+
+      - name: Assert FAIL behavior is correct
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The action should fail (but we allowed workflow continuation)
+          if [ "${{ steps.audit_fail.outcome }}" != "failure" ]; then
+            echo "Expected audit-pack step outcome=failure, got: ${{ steps.audit_fail.outcome }}"
+            exit 1
+          fi
+
+          # Artifacts must still exist and report must indicate failure
+          test -f artifacts/self-test/fail/summary.txt
+          grep -q "overall_failed=1" artifacts/self-test/fail/summary.txt
+
+          # Confirm tests failed (exit code non-zero)
+          test -f artifacts/self-test/fail/tests.exit
+          code="$(cat artifacts/self-test/fail/tests.exit)"
+          if [ "$code" = "0" ]; then
+            echo "Expected tests.exit != 0, got 0"
+            exit 1
+          fi
+
+  standards-smoke:
+    name: Standards smoke (docs + structure)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Validate required docs exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f VERSIONING.md
+          test -f CHANGELOG.md
+          test -f docs/REFERENCE.md
+          test -d actions/audit-pack
+          test -d examples/python-service
