@@ -5,14 +5,138 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Release tag to validate (vMAJOR.MINOR.PATCH)."
+        required: true
+        type: string
+      release_notes:
+        description: "Release notes markdown (must include Summary, Added, Changed, Removed, Fixed)."
+        required: true
+        type: string
 
 permissions:
   contents: read
+  checks: read
   attestations: write
   id-token: write
 
 jobs:
+  release-governance:
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.meta.outputs.release_tag }}
+      release_version: ${{ steps.meta.outputs.release_version }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - id: meta
+        name: Resolve release metadata
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_TAG_NAME: ${{ github.event.release.tag_name }}
+          EVENT_RELEASE_BODY: ${{ github.event.release.body }}
+          INPUT_TAG_NAME: ${{ inputs.tag_name }}
+          INPUT_RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: |
+          set -euo pipefail
+
+          if [ "${EVENT_NAME}" = "release" ]; then
+            release_tag="${EVENT_TAG_NAME}"
+            release_notes="${EVENT_RELEASE_BODY}"
+          else
+            release_tag="${INPUT_TAG_NAME}"
+            release_notes="${INPUT_RELEASE_NOTES}"
+          fi
+
+          release_tag="${release_tag//$'\r'/}"
+          if [ -z "${release_tag}" ]; then
+            echo "Release tag is required."
+            exit 1
+          fi
+
+          if [[ ! "${release_tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release tag '${release_tag}'. Expected vMAJOR.MINOR.PATCH."
+            exit 1
+          fi
+
+          release_version="${release_tag#v}"
+          echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+          echo "release_version=${release_version}" >> "${GITHUB_OUTPUT}"
+          {
+            echo "release_notes<<EOF"
+            printf '%s\n' "${release_notes}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Validate changelog entry
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ steps.meta.outputs.release_version }}
+        run: |
+          set -euo pipefail
+          if ! grep -Eq "^## \\[${RELEASE_VERSION}\\]( |$|-)" CHANGELOG.md; then
+            echo "Missing CHANGELOG entry for ${RELEASE_VERSION}."
+            exit 1
+          fi
+
+      - name: Validate release notes sections
+        shell: bash
+        env:
+          RELEASE_NOTES: ${{ steps.meta.outputs.release_notes }}
+        run: |
+          set -euo pipefail
+          if [ -z "${RELEASE_NOTES//[[:space:]]/}" ]; then
+            echo "Release notes cannot be empty."
+            exit 1
+          fi
+
+          missing=0
+          for section in Summary Added Changed Removed Fixed; do
+            if ! printf '%s\n' "${RELEASE_NOTES}" | grep -Eiq "(^|[^A-Za-z])${section}([^A-Za-z]|$)"; then
+              echo "Missing release notes section: ${section}"
+              missing=1
+            fi
+          done
+
+          if [ "${missing}" -ne 0 ]; then
+            echo "Release notes must include: Summary, Added, Changed, Removed, Fixed."
+            exit 1
+          fi
+
+      - name: Validate target commit CI checks
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.meta.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          release_sha="$(git rev-list -n 1 "${RELEASE_TAG}")"
+          if [ -z "${release_sha}" ]; then
+            echo "Unable to resolve commit SHA for ${RELEASE_TAG}."
+            exit 1
+          fi
+
+          checks_json="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${release_sha}/check-runs")"
+          total_checks="$(echo "${checks_json}" | jq -r '.total_count')"
+          if [ "${total_checks}" -eq 0 ]; then
+            echo "No CI checks found on commit ${release_sha}."
+            exit 1
+          fi
+
+          failing_count="$(echo "${checks_json}" | jq '[.check_runs[] | select(.status != "completed" or (.conclusion != "success" and .conclusion != "neutral" and .conclusion != "skipped"))] | length')"
+          if [ "${failing_count}" -ne 0 ]; then
+            echo "Found failing or incomplete CI checks on commit ${release_sha}:"
+            echo "${checks_json}" | jq -r '.check_runs[] | select(.status != "completed" or (.conclusion != "success" and .conclusion != "neutral" and .conclusion != "skipped")) | "- \(.name): status=\(.status), conclusion=\(.conclusion)"'
+            exit 1
+          fi
+
   sbom-provenance:
+    needs: release-governance
     runs-on: ubuntu-latest
     env:
       COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
