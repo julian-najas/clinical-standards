@@ -8,8 +8,8 @@ jobs:
   sbom:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: anchore/sbom-action@v0
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0
         with:
           format: spdx-json
           output-file: sbom.spdx.json
