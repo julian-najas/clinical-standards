@@ -14,6 +14,10 @@ on:
         required: false
         type: string
         default: '.semgrep.yml'
+      semgrep_version:
+        required: false
+        type: string
+        default: '1.145.0'
 
 jobs:
   audit:
@@ -29,6 +33,24 @@ jobs:
       - name: Prepare artifacts directory
         run: mkdir -p artifacts
 
+      - id: standards-ref
+        name: Resolve standards ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${GITHUB_WORKFLOW_REF:-}" ] || [[ "${GITHUB_WORKFLOW_REF}" != *"@"* ]]; then
+            echo "Unable to resolve standards ref from GITHUB_WORKFLOW_REF"
+            exit 1
+          fi
+          echo "ref=${GITHUB_WORKFLOW_REF#*@}" >> "${GITHUB_OUTPUT}"
+
+      - name: Checkout standards actions at workflow ref
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: julian-najas/clinical-standards
+          ref: ${{ steps.standards-ref.outputs.ref }}
+          path: .clinical-standards
+
       - name: P0 - Gitleaks (secret scanning)
         id: gitleaks
         continue-on-error: true
@@ -40,16 +62,20 @@ jobs:
             --exit-code=1
 
       - name: P0 - Audit Pack (ruff, mypy, pytest)
-        uses: julian-najas/clinical-standards/actions/audit-pack@1b7bd178155571e4c27d0e40966dc71b72007d04 # v1
+        uses: ./.clinical-standards/actions/audit-pack
         with:
           python_version: ${{ inputs.python_version }}
           install-command: >-
             python -m pip install --upgrade pip &&
             pip install ruff mypy pytest
 
-      - name: P1 - Semgrep
+      - name: P1 - Semgrep (pinned engine)
+        shell: bash
         run: |
-          pip install semgrep
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install "semgrep==${{ inputs.semgrep_version }}"
+          semgrep --version
           semgrep --config "${{ inputs.semgrep_config }}" --json --output artifacts/semgrep-report.json || true
 
       - name: Generate artifacts/report.md
