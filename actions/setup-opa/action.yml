@@ -1,0 +1,23 @@
+name: 'Setup OPA'
+description: 'Install Open Policy Agent with checksum verification.'
+
+inputs:
+  opa_version:
+    required: false
+    default: ''
+    description: 'Optional OPA release version override.'
+  opa_sha256:
+    required: false
+    default: ''
+    description: 'Optional checksum override for opa_linux_amd64_static.'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install OPA
+      shell: bash
+      env:
+        OPA_VERSION: ${{ inputs.opa_version }}
+        OPA_SHA256: ${{ inputs.opa_sha256 }}
+      run: |
+        bash "${{ github.action_path }}/install.sh"

@@ -49,8 +49,12 @@ inputs:
     description: 'Enable clinical OPA tests (opt-in)'
   opa_version:
     required: false
-    default: 'v1.5.1'
-    description: 'OPA version used for clinical tests'
+    default: ''
+    description: 'Optional OPA version override.'
+  opa_sha256:
+    required: false
+    default: ''
+    description: 'Optional OPA checksum override.'
 
 runs:
   using: 'composite'
@@ -122,14 +126,34 @@ runs:
 
         echo "overall_failed=${overall_failed}" >> "${GITHUB_OUTPUT}"
 
+    - name: Validate OPA override inputs
+      if: ${{ inputs.enable_clinical == 'true' }}
+      shell: bash
+      env:
+        OPA_VERSION: ${{ inputs.opa_version }}
+        OPA_SHA256: ${{ inputs.opa_sha256 }}
+      run: |
+        set -euo pipefail
+        if [ -n "${OPA_SHA256}" ] && [ -z "${OPA_VERSION}" ]; then
+          echo "opa_version is required when opa_sha256 is set"
+          exit 1
+        fi
+
+    - name: Install OPA for clinical tests
+      if: ${{ inputs.enable_clinical == 'true' && hashFiles('policies/clinical/**') != '' }}
+      shell: bash
+      env:
+        OPA_VERSION: ${{ inputs.opa_version }}
+        OPA_SHA256: ${{ inputs.opa_sha256 }}
+      run: |
+        set -euo pipefail
+        bash "${GITHUB_ACTION_PATH}/../setup-opa/install.sh"
+
     - name: Clinical OPA tests (opt-in)
       if: ${{ inputs.enable_clinical == 'true' && hashFiles('policies/clinical/**') != '' }}
       shell: bash
       run: |
         set -euo pipefail
-        curl -L -o opa "https://openpolicyagent.org/downloads/${{ inputs.opa_version }}/opa_linux_amd64_static"
-        chmod +x opa
-        sudo mv opa /usr/local/bin/opa
         opa test policies/clinical -v
 
     - name: Upload audit artifacts
