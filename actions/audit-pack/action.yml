@@ -37,7 +37,7 @@ inputs:
     description: 'Whether to run tests'
   artifacts-dir:
     required: false
-    default: '.artifacts/audit'
+    default: 'artifacts/audit'
     description: 'Directory for logs/results'
   artifact-name:
     required: false
