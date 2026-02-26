@@ -1,3 +1,27 @@
+﻿[...existing code...]
+## Status & Supply Chain
+
+- **Monorepo is source-of-truth** (schemas + runtime + policies + examples)
+- **Runtime published to PyPI**: `clinical-mcp`
+- **Signed releases**: cosign keyless signatures + GitHub build provenance
+- **SBOM included** for runtime releases
+
+![CI](https://github.com/julian-najas/clinical-standards/actions/workflows/self-test.yml/badge.svg)
+![Scorecard](https://github.com/julian-najas/clinical-standards/actions/workflows/scorecard.yml/badge.svg)
+![Schemas Pages](https://github.com/julian-najas/clinical-standards/actions/workflows/pages.yml/badge.svg)
+![PyPI](https://img.shields.io/pypi/v/clinical-mcp)
+[...existing code...]
+## Status & Supply Chain
+
+- **Monorepo is source-of-truth** (schemas + runtime + policies + examples)
+- **Runtime published to PyPI**: `clinical-mcp`
+- **Signed releases**: cosign keyless signatures + GitHub build provenance
+- **SBOM included** for runtime releases
+
+![CI](https://github.com/julian-najas/clinical-standards/actions/workflows/self-test.yml/badge.svg)
+![Scorecard](https://github.com/julian-najas/clinical-standards/actions/workflows/scorecard.yml/badge.svg)
+![Schemas Pages](https://github.com/julian-najas/clinical-standards/actions/workflows/pages.yml/badge.svg)
+![PyPI](https://img.shields.io/pypi/v/clinical-mcp)
 # clinical-standards
 
 Repositorio canonico para seguridad, reproducibilidad y gobierno clinico.

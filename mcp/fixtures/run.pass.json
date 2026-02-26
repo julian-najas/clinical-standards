@@ -1,0 +1,9 @@
+{
+  "run_id": "r1",
+  "started_ts_unix": 1.0,
+  "service_name": "demo",
+  "environment": "test",
+  "plan": ["intake", "billing"],
+  "result_keys": ["patient_ref", "intake_status", "billing_status"],
+  "status": "completed"
+}

@@ -1,0 +1,3 @@
+{"ts_unix": 1.0, "run_id": "r1", "actor": "orchestrator", "kind": "started", "cid": "c1", "payload": {"plan": ["intake","billing"]}}
+{"ts_unix": 2.0, "run_id": "r1", "actor": "agent:intake", "kind": "decision", "cid": "c2", "payload": {"produced_keys": ["patient_ref","intake_status"]}}
+{"ts_unix": 3.0, "run_id": "r1", "actor": "orchestrator", "kind": "completed", "cid": "c1", "payload": {"result_keys": ["billing_status","intake_status","patient_ref"]}}

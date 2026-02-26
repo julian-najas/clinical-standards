@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://julian-najas.github.io/clinical-standards/schemas/run.schema.json",
+  "title": "MCP Runbook",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id",
+    "started_ts_unix",
+    "service_name",
+    "environment",
+    "plan",
+    "result_keys",
+    "status"
+  ],
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "started_ts_unix": { "type": "number" },
+    "service_name": { "type": "string", "minLength": 1 },
+    "environment": { "type": "string", "minLength": 1 },
+    "plan": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1
+    },
+    "result_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "status": { "type": "string", "enum": ["started", "completed", "failed"] }
+  }
+}

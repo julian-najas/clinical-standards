@@ -1,3 +1,16 @@
+# Artifact Signing
+
+The schema registry (`mcp/schemas/registry.json`) is signed using Sigstore (keyless).
+Each release includes:
+
+- registry.json
+- registry.sig
+- registry.pem
+
+Verification:
+cosign verify-blob --certificate registry.pem --signature registry.sig registry.json
+
+SLSA Level 3 provenance is generated for each release.
 # Security Policy
 
 This repository defines institutional standards for clinical engineering workflows.

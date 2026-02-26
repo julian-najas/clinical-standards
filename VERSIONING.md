@@ -1,3 +1,12 @@
+## Schema Registry Integrity
+
+All public schemas are indexed in `mcp/schemas/registry.json`.
+Each entry includes a SHA256 digest.
+
+Any schema modification requires:
+- Regeneration of registry
+- Version classification per SemVer
+- CI passing registry integrity check
 # Versioning Policy
 
 This repository follows **Semantic Versioning (SemVer)**: `MAJOR.MINOR.PATCH`.
@@ -8,6 +17,10 @@ Because this is a **standards repository**, the “public API” is not code-onl
 - **Policies** under `policies/**` (OPA/Conftest/Semgrep rules and their enforcement levels)
 - **Templates** under `templates/**` (project structure, make targets, expected outputs)
 
+
+**Contract surface:**
+- Cambios en `mcp/schemas/v1/*.json` = MAJOR (rompe consumidores que parsean eventos/runbook).
+- Nuevos schemas en `mcp/schemas/v2/` = MINOR (no rompe v1).
 If it is relied upon by consumers, it is part of the public contract.
 
 ---

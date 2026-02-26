@@ -1,0 +1,16 @@
+{
+  "registry_version": 1,
+  "generated_at": "2026-02-25T23:26:36.992783+00:00",
+  "schemas": {
+    "v1": {
+      "event": {
+        "path": "mcp\\schemas\\v1\\event.schema.json",
+        "sha256": "58505907ad6dbcae5ba078f991b5c898d1ca057f8a459f4ada7e814c47cfa2d9"
+      },
+      "run": {
+        "path": "mcp\\schemas\\v1\\run.schema.json",
+        "sha256": "94775b6236fe695d87434634b9190355b3913844f0cc5d80cb4ba3616ea7fa88"
+      }
+    }
+  }
+}

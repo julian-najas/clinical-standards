@@ -1,0 +1,42 @@
+name: Sign Schema Registry
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Generate registry
+        run: |
+          python scripts/generate_schema_registry.py
+
+      - name: Sign registry (keyless)
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign sign-blob \
+            --yes \
+            --output-signature registry.sig \
+            --output-certificate registry.pem \
+            mcp/schemas/registry.json
+
+      - name: Upload signature to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            mcp/schemas/registry.json
+            registry.sig
+            registry.pem

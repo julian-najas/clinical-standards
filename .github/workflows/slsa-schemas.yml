@@ -1,0 +1,16 @@
+name: SLSA Provenance (Schemas)
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  provenance:
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.9.0
+    with:
+      base64-subjects: |
+        $(echo -n mcp/schemas/registry.json | base64 -w0)

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://julian-najas.github.io/clinical-standards/schemas/event.schema.json",
+  "title": "MCP Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ts_unix", "run_id", "actor", "kind", "cid", "payload"],
+  "properties": {
+    "ts_unix": { "type": "number" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "actor": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "kind": {
+      "type": "string",
+      "enum": ["started", "step", "decision", "emit", "completed", "error"]
+    },
+    "cid": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "payload": {
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "number", "integer", "boolean", "object", "array", "null"]
+      }
+    }
+  }
+}

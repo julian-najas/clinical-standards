@@ -9,6 +9,79 @@ permissions:
   contents: read
 
 jobs:
+  schema-registry-check:
+    name: Schema registry integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+
+      - name: Regenerate registry and verify no diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/generate_schema_registry.py
+          git diff --exit-code
+
+  opa-policy-tests:
+    name: OPA policy tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Install OPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          OPA_VERSION="0.63.0"
+          curl -L -o opa "https://openpolicyagent.org/downloads/v${OPA_VERSION}/opa_linux_amd64_static"
+          chmod +x opa
+          sudo mv opa /usr/local/bin/opa
+          opa version
+
+      - name: Run OPA tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          opa test policies/clinical -v
+
+  contract-tests:
+    name: Contract tests (schemas + OPA)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+
+      - name: Install MCP runtime (dev)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -e "mcp/python[dev]"
+          python -m pip install jsonschema
+
+      - name: Install OPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          OPA_VERSION="0.63.0"
+          curl -L -o opa "https://openpolicyagent.org/downloads/v${OPA_VERSION}/opa_linux_amd64_static"
+          chmod +x opa
+          sudo mv opa /usr/local/bin/opa
+          opa version
+
+      - name: Run contract tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          pytest -q mcp/python/tests
+
   audit-pack-pass:
     name: audit-pack / PASS path
     runs-on: ubuntu-latest
@@ -138,7 +211,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@a4a1c1e6e6e2e1e2e1e2e1e2e1e2e1e2e1e2e1e2 # v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.11'
 
@@ -157,7 +230,7 @@ jobs:
         run: |
           python orchestrator.py
 
-      - name: Assert eventlog exists y contiene eventos
+      - name: Assert eventlog exists and contains events
         working-directory: examples/multiagent-clinic
         run: |
           set -euo pipefail
@@ -167,3 +240,59 @@ jobs:
             echo "Eventlog demasiado corto ($lines líneas)"
             exit 1
           fi
+
+  mcp-hybrid-smoke:
+    name: MCP hybrid smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+
+      - name: Install MCP runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -U pip
+          python -m pip install -e "mcp/python[dev]"
+
+      - name: Run hybrid demo
+        shell: bash
+        run: |
+          set -euo pipefail
+          python examples/multiagent-clinic/orchestrator_demo.py
+          test -f artifacts/mcp/events.jsonl
+          test -f artifacts/mcp/run.json
+          test -f artifacts/mcp/outbox.sqlite3
+
+      - name: Install OPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          OPA_VERSION="0.63.0"
+          curl -L -o opa "https://openpolicyagent.org/downloads/v${OPA_VERSION}/opa_linux_amd64_static"
+          chmod +x opa
+          sudo mv opa /usr/local/bin/opa
+          opa version
+
+      - name: Validate MCP artifacts against JSON Schemas
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -c "import jsonschema; print('jsonschema ok')"
+          python mcp/python/clinical_mcp/validate_artifacts.py
+
+      - name: OPA evaluate events
+        shell: bash
+        run: |
+          set -euo pipefail
+          python mcp/python/clinical_mcp/opa_eval_events.py
+
+      - name: Assert no PII patterns in artifacts (strict)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -E "\b[0-9]{8}[A-Z]\b" -n artifacts/mcp/events.jsonl
+          ! grep -E "@" -n artifacts/mcp/events.jsonl
