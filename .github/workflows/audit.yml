@@ -40,7 +40,7 @@ jobs:
             --exit-code=1
 
       - name: P0 - Audit Pack (ruff, mypy, pytest)
-        uses: julian-najas/clinical-standards/actions/audit-pack@1b7bd178155571e4c27d0e40966dc71b72007d04 # v1
+        uses: julian-najas/clinical-standards/actions/audit-pack@6217f04d611487f3c22e70285f5725a7b0d46594 # v1
         with:
           python_version: ${{ inputs.python_version }}
           install-command: >-
